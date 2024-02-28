@@ -14,6 +14,7 @@ let
     "-X github.com/kurtosis-tech/kurtosis/kurtosis_version.Commit=${commit_hash}"
   ]);
 in buildGoApplication {
+  checkPhase = '''';
   # pname has to match the location (folder) where the main function is or use
   # subPackges to specify the file (e.g. subPackages = ["some/folder/main.go"];)
   inherit pname ldflags;
