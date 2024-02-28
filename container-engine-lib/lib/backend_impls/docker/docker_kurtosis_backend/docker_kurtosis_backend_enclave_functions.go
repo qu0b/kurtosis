@@ -147,22 +147,22 @@ func (backend *DockerKurtosisBackend) CreateEnclave(ctx context.Context, enclave
 	// TODO: return production mode for create enclave request as well
 	newEnclave := enclave.NewEnclave(enclaveUuid, enclaveName, enclave.EnclaveStatus_Empty, &creationTime, false)
 
-	if err := backend.ConnectReverseProxyToNetwork(ctx, networkId); err != nil {
-		return nil, stacktrace.Propagate(err, "An error occurred connecting the reverse proxy to the enclave network with ID '%v'", networkId)
-	}
-	shouldDisconnectReverseProxyFromNetwork := true
-	defer func() {
-		if shouldDisconnectReverseProxyFromNetwork {
-			err = backend.DisconnectReverseProxyFromNetwork(ctx, networkId)
-			if err != nil {
-				logrus.Errorf("Couldn't disconnect the reverse proxy from the enclave network with ID '%v'", networkId)
-			}
-		}
-	}()
+	// if err := backend.ConnectReverseProxyToNetwork(ctx, networkId); err != nil {
+	// 	return nil, stacktrace.Propagate(err, "An error occurred connecting the reverse proxy to the enclave network with ID '%v'", networkId)
+	// }
+	// shouldDisconnectReverseProxyFromNetwork := true
+	// defer func() {
+	// 	if shouldDisconnectReverseProxyFromNetwork {
+	// 		err = backend.DisconnectReverseProxyFromNetwork(ctx, networkId)
+	// 		if err != nil {
+	// 			logrus.Errorf("Couldn't disconnect the reverse proxy from the enclave network with ID '%v'", networkId)
+	// 		}
+	// 	}
+	// }()
 
 	shouldDeleteNetwork = false
 	shouldDeleteVolume = false
-	shouldDisconnectReverseProxyFromNetwork = false
+	// shouldDisconnectReverseProxyFromNetwork = false
 	return newEnclave, nil
 }
 
