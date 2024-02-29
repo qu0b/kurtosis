@@ -80,24 +80,24 @@ func (backend *DockerKurtosisBackend) CreateAPIContainer(
 		return nil, stacktrace.Propagate(err, "An error occurred while getting the logs collector for enclave '%v'; This is a bug in Kurtosis", enclaveUuid)
 	}
 
-	reverseProxy, err := backend.GetReverseProxy(ctx)
-	if reverseProxy == nil {
-		return nil, stacktrace.Propagate(err, "The reverse proxy is not running, This is a bug in Kurtosis")
-	}
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "An error occurred while getting the reverse proxy, This is a bug in Kurtosis")
-	}
-	reverseProxyEnclaveNetworkIpAddress, found := reverseProxy.GetEnclaveNetworksIpAddress()[enclaveNetwork.GetId()]
-	if !found {
-		return nil, stacktrace.NewError("An error occured while getting the reverse proxy enclave network IP address for enclave '%v', This is a bug in Kurtosis", enclaveUuid)
-	}
+	// reverseProxy, err := backend.GetReverseProxy(ctx)
+	// if reverseProxy == nil {
+	// 	return nil, stacktrace.Propagate(err, "The reverse proxy is not running, This is a bug in Kurtosis")
+	// }
+	// if err != nil {
+	// 	return nil, stacktrace.Propagate(err, "An error occurred while getting the reverse proxy, This is a bug in Kurtosis")
+	// }
+	// reverseProxyEnclaveNetworkIpAddress, found := reverseProxy.GetEnclaveNetworksIpAddress()[enclaveNetwork.GetId()]
+	// if !found {
+	// 	return nil, stacktrace.NewError("An error occured while getting the reverse proxy enclave network IP address for enclave '%v', This is a bug in Kurtosis", enclaveUuid)
+	// }
 
 	networkCidr := enclaveNetwork.GetIpAndMask()
 	alreadyTakenIps := map[string]bool{
 		networkCidr.IP.String():                                    true,
 		enclaveNetwork.GetGatewayIp():                              true,
 		enclaveLogsCollector.GetEnclaveNetworkIpAddress().String(): true,
-		reverseProxyEnclaveNetworkIpAddress.String():               true,
+		// reverseProxyEnclaveNetworkIpAddress.String():               true,
 	}
 
 	ipAddr, err := network_helpers.GetFreeIpAddrFromSubnet(alreadyTakenIps, networkCidr)
