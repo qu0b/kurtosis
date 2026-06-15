@@ -12,6 +12,7 @@ import (
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface/objects/api_container"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface/objects/enclave"
+	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/image_org"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/kubernetes_grace"
 	"github.com/kurtosis-tech/kurtosis/core/launcher/args"
 	"github.com/kurtosis-tech/kurtosis/kurtosis_version"
@@ -24,7 +25,7 @@ const (
 	enclaveDataVolumeDirpath = "/kurtosis-data"
 
 	// TODO This should come from the same logic that builds the server image!!!!!
-	containerImage = "kurtosistech/core"
+	containerImageName = "core"
 )
 
 type ApiContainerLauncher struct {
@@ -119,14 +120,18 @@ func (launcher ApiContainerLauncher) LaunchWithCustomVersion(
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred generating the API container's environment variables")
 	}
-	// Propagate the optional pod-delete grace override so APIC-created pods honor it.
+	// Propagate optional overrides so APIC-created pods honor them.
+	if org := os.Getenv(image_org.EnvVarName); org != "" {
+		envVars[image_org.EnvVarName] = org
+	}
 	if v := os.Getenv(kubernetes_grace.EnvVarName); v != "" {
 		envVars[kubernetes_grace.EnvVarName] = v
 	}
 
 	containerImageAndTag := fmt.Sprintf(
-		"%v:%v",
-		containerImage,
+		"%v/%v:%v",
+		image_org.Get(),
+		containerImageName,
 		imageVersionTag,
 	)
 

@@ -14,6 +14,7 @@ import (
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface/objects/logs_aggregator"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface/objects/logs_collector"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_interface/objects/port_spec"
+	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/image_org"
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/kubernetes_grace"
 	"github.com/kurtosis-tech/kurtosis/engine/launcher/args"
 	"github.com/kurtosis-tech/kurtosis/kurtosis_version"
@@ -24,7 +25,7 @@ import (
 
 const (
 	// TODO This should come from the same logic that builds the server image!!!!!
-	containerImage = "kurtosistech/engine"
+	containerImageName = "engine"
 )
 
 type EngineServerLauncher struct {
@@ -154,14 +155,17 @@ func (launcher *EngineServerLauncher) LaunchWithCustomVersion(
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred generating the engine server's environment variables")
 	}
-	// Propagate the optional pod-delete grace override so the engine (and its APICs) honor it.
+	// Propagate optional overrides so the engine (and its APICs) honor them.
+	if org := os.Getenv(image_org.EnvVarName); org != "" {
+		envVars[image_org.EnvVarName] = org
+	}
 	if v := os.Getenv(kubernetes_grace.EnvVarName); v != "" {
 		envVars[kubernetes_grace.EnvVarName] = v
 	}
 
 	engine, err := launcher.kurtosisBackend.CreateEngine(
 		ctx,
-		containerImage,
+		image_org.Get()+"/"+containerImageName,
 		imageVersionTag,
 		grpcListenPortNum,
 		envVars,
