@@ -15,6 +15,21 @@ const (
 	arm64ArchitectureString          = "arm64"
 )
 
+func TestGetHostPortBindingInterfaceForUserConsumption(t *testing.T) {
+	t.Run("defaults to loopback when unset", func(t *testing.T) {
+		t.Setenv(HostBindingInterfaceIpEnvVarKey, "")
+		require.Equal(t, defaultHostPortBindingInterfaceForUserConsumption, getHostPortBindingInterfaceForUserConsumption())
+	})
+	t.Run("honors a valid override", func(t *testing.T) {
+		t.Setenv(HostBindingInterfaceIpEnvVarKey, "10.20.212.100")
+		require.Equal(t, "10.20.212.100", getHostPortBindingInterfaceForUserConsumption())
+	})
+	t.Run("falls back to loopback on an invalid override", func(t *testing.T) {
+		t.Setenv(HostBindingInterfaceIpEnvVarKey, "not-an-ip")
+		require.Equal(t, defaultHostPortBindingInterfaceForUserConsumption, getHostPortBindingInterfaceForUserConsumption())
+	})
+}
+
 func TestGetLabelsFilterList(t *testing.T) {
 	//Enclave ID label
 	enclaveKey := "enclaveID"

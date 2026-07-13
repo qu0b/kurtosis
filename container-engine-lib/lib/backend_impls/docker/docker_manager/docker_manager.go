@@ -65,10 +65,18 @@ const (
 
 	expectedHostIp = "0.0.0.0"
 
+	// HostBindingInterfaceIpEnvVarKey is the environment variable that overrides the host interface IP
+	// that Kurtosis reports published service ports as (e.g. in `kurtosis enclave inspect` URLs). Docker
+	// always binds published ports to 0.0.0.0 (expectedHostIp); this only controls the address surfaced
+	// to users. Set it on the CLI's environment (e.g. a LAN IP so URLs are reachable from other machines);
+	// CreateEngine and CreateAPIContainer forward it onto the engine and API containers so every process
+	// reports the same address. Defaults to defaultHostPortBindingInterfaceForUserConsumption when unset.
+	HostBindingInterfaceIpEnvVarKey = "KURTOSIS_HOST_BINDING_INTERFACE_IP"
+
 	// When Docker binds a container port to the host machine, it binds it to host interface 0.0.0.0
 	// Linux machines will use 127.0.0.1 for 0.0.0.0, but Windows machines don't
 	// We therefore return 127.0.0.1 to the users rather than 0.0.0.0 so everybody can use them
-	hostPortBindingInterfaceForUserConsumption = "127.0.0.1"
+	defaultHostPortBindingInterfaceForUserConsumption = "127.0.0.1"
 
 	// Character Docker uses to separate the repo from
 	dockerTagSeparatorChar = ":"
@@ -2152,6 +2160,7 @@ func (manager *DockerManager) removeContainerWithRetriesOnFailureForZombieProces
 // Takes in a PortMap (as reported by Docker container inspect) and returns a map of the used ports -> host port binding on the expected interface
 // If no bindings for the interface are found, len(output) < len(input)
 func getHostPortBindingsOnExpectedInterface(hostPortBindingsOnAllInterfaces nat.PortMap) map[nat.Port]*nat.PortBinding {
+	hostPortBindingInterfaceForUserConsumption := getHostPortBindingInterfaceForUserConsumption()
 	result := map[nat.Port]*nat.PortBinding{}
 	for port, allInterfaceBindings := range hostPortBindingsOnAllInterfaces {
 		for _, interfaceBinding := range allInterfaceBindings {
@@ -2173,6 +2182,27 @@ func getHostPortBindingsOnExpectedInterface(hostPortBindingsOnAllInterfaces nat.
 		}
 	}
 	return result
+}
+
+// getHostPortBindingInterfaceForUserConsumption returns the host interface IP that published ports
+// should be reported as. It honors the HostBindingInterfaceIpEnvVarKey override when set to a valid IP;
+// otherwise it falls back to defaultHostPortBindingInterfaceForUserConsumption ("127.0.0.1"), preserving
+// the legacy behavior. Docker always binds the underlying port to 0.0.0.0 regardless of this value.
+func getHostPortBindingInterfaceForUserConsumption() string {
+	override, found := os.LookupEnv(HostBindingInterfaceIpEnvVarKey)
+	if !found || override == "" {
+		return defaultHostPortBindingInterfaceForUserConsumption
+	}
+	if net.ParseIP(override) == nil {
+		logrus.Warnf(
+			"Ignoring invalid %v value '%v'; it must be a valid IP address. Falling back to '%v'.",
+			HostBindingInterfaceIpEnvVarKey,
+			override,
+			defaultHostPortBindingInterfaceForUserConsumption,
+		)
+		return defaultHostPortBindingInterfaceForUserConsumption
+	}
+	return override
 }
 
 func (manager *DockerManager) getContainersByFilterArgs(ctx context.Context, filterArgs filters.Args, shouldShowStoppedContainers bool) ([]*docker_manager_types.Container, error) {

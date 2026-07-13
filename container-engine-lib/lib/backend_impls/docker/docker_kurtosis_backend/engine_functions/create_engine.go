@@ -3,6 +3,7 @@ package engine_functions
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/kurtosis-tech/kurtosis/container-engine-lib/lib/backend_impls/docker/docker_kurtosis_backend/engine_functions/docker_config_storage_creator"
@@ -313,6 +314,13 @@ func CreateEngine(
 	// We use a separate env var because DOCKER_HOST inside the engine should point to /var/run/docker.sock
 	hostSocketPath = shared_helpers.GetDockerSocketPath(dockerManager.IsPodman())
 	envVars["HOST_DOCKER_SOCKET"] = hostSocketPath
+
+	// Propagate the host-binding interface IP override (if any) from this (CLI) process to the engine
+	// container, so the engine's docker_manager reports published ports with the same address as the CLI.
+	// Docker still binds the underlying ports to 0.0.0.0 regardless; this only affects the reported address.
+	if hostBindingInterfaceIp := os.Getenv(docker_manager.HostBindingInterfaceIpEnvVarKey); hostBindingInterfaceIp != "" {
+		envVars[docker_manager.HostBindingInterfaceIpEnvVarKey] = hostBindingInterfaceIp
+	}
 
 	createAndStartArgsBuilder := docker_manager.NewCreateAndStartContainerArgsBuilder(
 		containerImageAndTag,

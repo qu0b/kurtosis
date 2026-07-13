@@ -135,6 +135,14 @@ func (backend *DockerKurtosisBackend) CreateAPIContainer(
 		envVarsWithOwnIp[key] = value
 	}
 
+	// Propagate the host-binding interface IP override (if any) from this (engine) process to the API
+	// container, so the API container's docker_manager reports user-service ports with the same address
+	// the user configured. Docker still binds the underlying ports to 0.0.0.0; this only affects the
+	// reported address (e.g. in `kurtosis enclave inspect`).
+	if hostBindingInterfaceIp := os.Getenv(docker_manager.HostBindingInterfaceIpEnvVarKey); hostBindingInterfaceIp != "" {
+		envVarsWithOwnIp[docker_manager.HostBindingInterfaceIpEnvVarKey] = hostBindingInterfaceIp
+	}
+
 	defaultWait, err := port_spec.CreateWaitWithDefaultValues()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred creating a new wait with default values")
